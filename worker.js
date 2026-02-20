@@ -2,6 +2,26 @@
 // and ES module workers strictly forbid 'importScripts()', we must run as a classic worker.
 // To use our modular ES6 files, we dynamically import them.
 
+// --- POLYFILL FOR MEDIAPIPE IN WORKER ---
+// MediaPipe's vision_bundle.mjs expects `document.createElement('canvas')` to exist
+// even when running in CPU delegate mode to do internal capability checks.
+if (typeof document === 'undefined') {
+    self.document = {
+        createElement: (type) => {
+            if (type === 'canvas') {
+                return new OffscreenCanvas(1, 1);
+            }
+            return {};
+        }
+    };
+
+    // Some mediapipe bundles also check for window
+    if (typeof window === 'undefined') {
+        self.window = self;
+    }
+}
+// ----------------------------------------
+
 let tracker = null;
 let enhanceFn = null;
 let utils = null;

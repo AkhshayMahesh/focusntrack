@@ -12,6 +12,8 @@ const canvasEl = document.getElementById('render-canvas');
 const statusBadge = document.getElementById('status-badge');
 const btnWebcam = document.getElementById('btn-webcam');
 const videoUpload = document.getElementById('video-upload');
+const menuPanel = document.querySelector('.menu-panel'); // For hiding UI
+const bgLayer = document.querySelector('.bg-layer'); // For hiding background art
 
 // App State
 const state = {
@@ -42,13 +44,13 @@ function setupOffscreenCanvas(width, height) {
 
 // 1. Initialize Web Worker
 trackingWorker.init({
-    onReady: () => uiManager.updateStatus('AI Engine Ready', 'ready'),
+    onReady: () => uiManager.updateStatus('Ready', 'ready'),
     onUpdate: (subject) => {
         state.selectedSubject = subject;
     },
     onError: (err) => {
         console.error('Worker Error:', err);
-        uiManager.updateStatus('AI Error', 'error');
+        uiManager.updateStatus('Error', 'error');
     }
 });
 
@@ -92,7 +94,7 @@ function renderFrame() {
         const ctx = state.renderContext.context;
 
         // 1. Draw blurred background
-        ctx.filter = state.trackingActive ? 'blur(10px)' : 'none';
+        ctx.filter = state.trackingActive ? 'blur(25px)' : 'none';
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
 
         // 2. Draw sharp subject (if tracking)
@@ -105,20 +107,11 @@ function renderFrame() {
             const bx = Math.max(0, Math.min(x, canvasEl.width - subW));
             const by = Math.max(0, Math.min(y, canvasEl.height - subH));
 
-            // Draw original sharp video patch
+            // Destination (Draws original sharp video patch cleanly without boxing)
             ctx.drawImage(videoEl,
                 bx, by, subW, subH, // Source
                 bx, by, subW, subH  // Destination
             );
-
-            // Highlight bracket ring
-            ctx.strokeStyle = '#3b82f6';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(bx, by, subW, subH);
-            ctx.shadowColor = '#60a5fa';
-            ctx.shadowBlur = 15;
-            ctx.strokeRect(bx, by, subW, subH);
-            ctx.shadowBlur = 0; // Reset
         }
     }
 
@@ -135,12 +128,16 @@ function renderFrame() {
 // 4. UI Events Binding
 uiManager.bindWebcamEvent(async () => {
     if (await videoManager.startWebcam()) {
+        menuPanel.classList.add('hidden-menu');
+        if (bgLayer) bgLayer.classList.add('hidden-menu');
         requestAnimationFrame(renderFrame);
     }
 });
 
 uiManager.bindVideoUploadEvent((file) => {
     if (videoManager.loadVideoFile(file)) {
+        menuPanel.classList.add('hidden-menu');
+        if (bgLayer) bgLayer.classList.add('hidden-menu');
         requestAnimationFrame(renderFrame);
     }
 });

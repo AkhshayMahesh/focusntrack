@@ -14,8 +14,7 @@ export class MediaPipeTracker {
 
             this.detector = await ObjectDetector.createFromOptions(vision, {
                 baseOptions: {
-                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-                    delegate: "GPU" // Use GPU for best performance
+                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite"
                 },
                 scoreThreshold: 0.3,
                 runningMode: "IMAGE" // Required when passing ImageData from canvas

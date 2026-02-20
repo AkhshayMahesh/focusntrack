@@ -88,7 +88,7 @@ export class WebGPURenderer {
                     return colorNorm; // No effect
                 }
                 
-                let blurColor = blur(in.uv, 4.0);
+                let blurColor = blur(in.uv, 12.0);
                 
                 // Check if inside target rect
                 let tx = uniforms.targetRect.x;
@@ -107,16 +107,6 @@ export class WebGPURenderer {
                 // Mix blurred background with sharp foreground based on mask
                 var finalColor = mix(blurColor, colorNorm, mask);
                 
-                // Add highlight outline loosely based on mask gradient
-                // (Very basic outline for the hackathon MVP)
-                let edge = mask * (1.0 - mask) * 4.0; 
-                let highlightColor = vec4<f32>(0.2, 0.5, 1.0, 1.0);
-                
-                // Only add highlight explicitly near the edge
-                if (edge > 0.1 && mask > 0.01 && mask < 0.99) {
-                     finalColor = mix(finalColor, highlightColor, edge * 0.5);
-                }
-
                 return finalColor;
             }
         `;

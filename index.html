@@ -1,51 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Auto Focus & Dynamic Object Tracking</title>
-    <meta name="description" content="AI-based smart auto-focus and subject tracking with real-time background blur using WebGPU and Web Workers.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PEWDS FOCUS</title>
+    <meta name="description" content="AI-based smart auto-focus and subject tracking">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=Inter:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div id="app-container">
-        <!-- Hidden video element for source feed (webcam or uploaded) -->
+        <!-- Hidden video element -->
         <video id="source-video" playsinline webkit-playsinline muted loop crossorigin="anonymous"></video>
-        
+
         <!-- Main canvas for WebGPU/WebGL rendering -->
         <canvas id="render-canvas"></canvas>
 
+        <!-- UI Decorators background -->
+        <div class="bg-layer">
+            <div class="bg-grid"></div>
+            <!-- Moved circles via CSS but they stay in this layer -->
+            <div class="bg-circle inner"></div>
+            <div class="bg-circle"></div>
+        </div>
+
         <!-- UI Overlay -->
         <div id="ui-layer">
-            <header>
-                <h1>SmartLens <span>AI Focus</span></h1>
-                <div id="status-badge" class="badge">Initializing...</div>
-            </header>
 
-            <div class="controls-panel glass-panel">
-                <button id="btn-webcam" class="btn primary">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                    Start Webcam
-                </button>
-                <div class="divider">ou</div>
-                <label for="video-upload" class="btn secondary">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    Upload Video
-                </label>
-                <input type="file" id="video-upload" accept="video/mp4,video/webm" hidden>
+            <div class="top-left-controls">
+                <header class="app-header">
+                    <div class="header-content">
+                        <h1>PEWDS<span>FOCUS</span></h1>
+                        <div id="status-badge" class="badge">INITIALIZING...</div>
+                    </div>
+                </header>
+
+                <!-- Main Menu Panel -->
+                <div class="menu-panel">
+                    <div class="panel-header">
+                        <div class="red-dot"></div>
+                        <h2>CONTROLS</h2>
+                        <div class="red-dot"></div>
+                    </div>
+
+                    <div class="menu-items">
+                        <!-- Option 1: Start Webcam -->
+                        <div id="btn-webcam" class="menu-item-row action">
+                            <div class="item-num">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 7l-7 5 7 5V7z"></path>
+                                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                </svg>
+                            </div>
+                            <div class="item-text-col">
+                                <h3>WEBCAM</h3>
+                                <p>live tracking</p>
+                            </div>
+                            <div class="item-arrow">
+                                <svg viewBox="0 0 24 24" fill="#ef4444">
+                                    <polygon points="8,5 20,12 8,19" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Option 2: Upload Video -->
+                        <label for="video-upload" class="menu-item-row action">
+                            <div class="item-num">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <div class="item-text-col">
+                                <h3>UPLOAD</h3>
+                                <p>process file</p>
+                            </div>
+                            <div class="item-arrow">
+                                <svg viewBox="0 0 24 24" fill="#ef4444">
+                                    <polygon points="8,5 20,12 8,19" />
+                                </svg>
+                            </div>
+                        </label>
+                        <input type="file" id="video-upload" accept="video/mp4,video/webm" hidden>
+                    </div>
+
+                    <div class="panel-divider">
+                        SELECT SOURCE
+                    </div>
+                </div>
             </div>
 
-            <div class="instructions glass-panel bottom-panel">
-                <p><strong>Tap anywhere</strong> on the video to select a subject to focus on.</p>
-                <p class="sub-text">Background will blur automatically. Fast GPU rendering active.</p>
-            </div>
+            <!-- Instructions pinning to bottom-left on portrait, bottom-right on landscape -->
+            <!-- <div class="instructions-panel">
+                <p><strong>TAP ANYWHERE</strong> on the video to select a subject.</p>
+                <div class="sub-text">Background blurs automatically.</div>
+            </div> -->
         </div>
     </div>
-
-    <!-- Main Logic -->
     <script type="module" src="app.js"></script>
 </body>
+
 </html>
