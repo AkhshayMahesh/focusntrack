@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Auto Focus & Dynamic Object Tracking</title>
+    <meta name="description" content="AI-based smart auto-focus and subject tracking with real-time background blur using WebGPU and Web Workers.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Hidden video element for source feed (webcam or uploaded) -->
+        <video id="source-video" playsinline webkit-playsinline muted loop crossorigin="anonymous"></video>
+        
+        <!-- Main canvas for WebGPU/WebGL rendering -->
+        <canvas id="render-canvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-layer">
+            <header>
+                <h1>SmartLens <span>AI Focus</span></h1>
+                <div id="status-badge" class="badge">Initializing...</div>
+            </header>
+
+            <div class="controls-panel glass-panel">
+                <button id="btn-webcam" class="btn primary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                    Start Webcam
+                </button>
+                <div class="divider">ou</div>
+                <label for="video-upload" class="btn secondary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Upload Video
+                </label>
+                <input type="file" id="video-upload" accept="video/mp4,video/webm" hidden>
+            </div>
+
+            <div class="instructions glass-panel bottom-panel">
+                <p><strong>Tap anywhere</strong> on the video to select a subject to focus on.</p>
+                <p class="sub-text">Background will blur automatically. Fast GPU rendering active.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
