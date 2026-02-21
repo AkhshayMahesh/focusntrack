@@ -1,66 +1,51 @@
 # PEWDS FOCUS
 
-PEWDS FOCUS is a high-performance, real-time smart auto-focus and subject tracking application built natively for the web. Running entirely client-side, it leverages Machine Learning to detect subjects, applies a highly robust tracking algorithm to prevent focus shifting, and dynamically adds a cinematic depth-of-field (bokeh) effect directly via the GPU.
+A real-time smart auto-focus and subject tracking app that runs entirely in your browser. No servers, no uploads — ML inference, subject tracking, and cinematic bokeh blur all happen locally on your machine.
+
+![PEWDS FOCUS Banner](banner.png)
 
 ## Features
-*   **Zero-Server Architecture**: 100% of the ML inference runs locally in your browser.
-*   **Smart Subject Tracking**: A sophisticated cost-function tracker maintains a lock on your selected subject, preventing "focus hop" when objects cross paths.
-*   **Cinematic WebGPU Blur**: Real-time rendering of focus areas and background bokeh blur running flawlessly at 60fps.
-*   **Dual Input Support**: Processes live webcam feeds and pre-recorded video file uploads.
-*   **Unblocked UI**: ML processing runs asynchronously inside dedicated Web Workers, ensuring the UI remains perfectly smooth.
 
----
+- **Zero-server architecture** — 100% of ML inference runs client-side via WebAssembly
+- **Smart subject tracking** — a cost-function tracker maintains a lock on your selected subject and prevents "focus hop" when objects cross paths
+- **WebGPU bokeh blur** — real-time depth-of-field rendering at 60fps
+- **Dual input** — works with a live webcam or a pre-recorded video file
+- **Non-blocking UI** — ML processing runs inside dedicated Web Workers so the interface stays smooth
 
-## Setup & Installation
 
-Because PEWDS FOCUS uses modern web features like Web Workers and WebGPU, it relies on ES modules. It cannot be run simply by double-clicking the `index.html` file (due to browser CORS policies). You must run it through a local development server.
+## Setup
 
-### Prerequisites
-*   A modern browser with WebGPU support (Chrome/Edge 113+ recommended).
-*   [Node.js](https://nodejs.org/) installed, OR Python (for a simple local server).
+PEWDS FOCUS uses ES modules and Web Workers, so it needs to be served over HTTP rather than opened directly as a file. Pick whichever option suits you.
 
-### Option 1: Using Node.js / `serve`
-1. Clone this repository to your local machine.
-2. Open a terminal in the project directory.
-3. Run using `npx`:
+**Node.js**
 ```bash
 npx serve .
 ```
-4. Open the `localhost` URL provided in your terminal (usually `http://localhost:3000`).
+Then open the URL printed in your terminal (usually `http://localhost:3000`).
 
-### Option 2: Using Python
-1. Clone this repository to your local machine.
-2. Open a terminal in the project directory.
-3. Run the Python HTTP server:
+**Python**
 ```bash
 python -m http.server 8000
 ```
-4. Open `http://localhost:8000` in your web browser.
+Then open `http://localhost:8000`.
 
----
+A browser with WebGPU support is required — Chrome or Edge 113+ is recommended.
 
-## Technical Deep-Dive
+## How it works
 
-PEWDS FOCUS is composed of three primary layers to guarantee accuracy and performance.
+### Machine learning
 
-### 1. The Machine Learning Layer
-Object detection is powered by **Google MediaPipe Tasks Vision**.
-*   **Model**: EfficientDet-Lite0 (TFLite)
-*   **Execution**: WebAssembly (WASM) via Web Workers.
-*   **Rationale**: The `EfficientDet` architecture uses a weighted BiFPN and compound scaling to provide near state-of-the-art accuracy at a fraction of the computational cost of YOLO models, making it ideal for edge execution inside a browser.
+Object detection uses Google MediaPipe's EfficientDet-Lite0 (TFLite), running via WASM inside a Web Worker. EfficientDet's weighted BiFPN and compound scaling give it near state-of-the-art accuracy at a fraction of the cost of heavier models, which is what makes it practical for in-browser, edge execution.
 
-### 2. The Smart Tracking Algorithm
-Standard object detection suffers from "Focus Shift" (ID switching)—if two people cross paths, the detector will easily swap them. PEWDS FOCUS solves this using a custom predictive cost function.
+### Tracking
 
-For every new video frame, the system compares the currently tracked subject against *every* newly detected bounding box to find the lowest `Cost`:
+Raw object detection has a well-known problem: if two subjects cross paths, the detector will often swap their IDs. PEWDS FOCUS avoids this with a custom predictive cost function that runs on every frame.
 
-*   **Coast Tracking (Momentum)**: A constant-velocity model predicts where the subject *should* be. If a frame drops the subject (occlusion/blur), the tracker applies a `0.95x` friction multiplier to coast the bounding box along its expected path for up to 15 frames.
-*   **Normalized Distance**: It measures the Euclidean distance from the predicted location to the new detection, normalized by screen width to prevent fast-moving sports objects from generating huge penalizing costs.
-*   **Color Density Tracking (Bhattacharyya Distance)**: The tracker generates an **HSV Color Histogram** of the targeted subject. It uses an **Epanechnikov Kernel** weighting (placing heavier emphasis on pixels in the center of the bounding box and ignoring edges). This creates a highly accurate "color fingerprint" that is compared against candidate boxes. 
-*   **Dynamic Search Radius**: If the color density match is extremely high (>85% similarity), the tracker instantly expands its allowed search radius to 80% of the screen width, allowing it to seamlessly catch violently erratic, fast movements without losing lock.
+- **Momentum / coast tracking** — a constant-velocity model predicts where the subject should be next. If the subject disappears (occlusion, motion blur), the tracker coasts the bounding box along its predicted path for up to 15 frames, applying a 0.95x friction multiplier each frame.
+- **Normalized distance** — Euclidean distance between the predicted position and each new detection is normalized by screen width, so fast-moving subjects don't generate disproportionately large penalties.
+- **Color histogram matching** — the tracker builds an HSV color histogram of the target using an Epanechnikov kernel, which weights central pixels more heavily and ignores noisy edges. This "color fingerprint" is compared against candidate boxes using Bhattacharyya distance.
+- **Dynamic search radius** — when color similarity exceeds 85%, the search radius expands to 80% of the screen width, allowing the tracker to follow fast, erratic movement without losing the lock.
 
-### 3. Rendering Engine
-The rendering layer applies the dynamic visual effects, operating entirely independently of the ML polling loop.
-*   **Technology**: WebGPU & WGSL Shaders
-*   **Implementation**: An offscreen canvas continuously feeds video frames to the GPU as `rgba8unorm` textures.
-*   **The Shader**: A fragment shader executes a Box Blur on the background while using GLSL `smoothstep` functions to generate a soft, mathematical alpha mask around the currently tracked bounding box coordinates. The sharp and blurred textures are then smoothly `mix()`'d to emulate camera depth-of-field.
+### Rendering
+
+The visual layer runs independently of the ML loop via WebGPU and WGSL shaders. Video frames are streamed from an offscreen canvas to the GPU as `rgba8unorm` textures. A fragment shader applies a box blur to the background and generates a soft alpha mask around the tracked bounding box using `smoothstep`, then blends the sharp and blurred textures together to simulate camera depth-of-field.
