@@ -223,10 +223,11 @@ html {
 
 /* Visibility toggling */
 .hidden-menu {
-    opacity: 0;
+    /* opacity: 0;
     pointer-events: none;
     transform: translateY(-20px);
-    transition: all 0.4s ease-in-out;
+    transition: all 0.4s ease-in-out; */
+    display: none;
 }
 
 .menu-item-row {

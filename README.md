@@ -1,4 +1,4 @@
-# PEWDS FOCUS 🎯
+# PEWDS FOCUS
 
 PEWDS FOCUS is a high-performance, real-time smart auto-focus and subject tracking application built natively for the web. Running entirely client-side, it leverages Machine Learning to detect subjects, applies a highly robust tracking algorithm to prevent focus shifting, and dynamically adds a cinematic depth-of-field (bokeh) effect directly via the GPU.
 
@@ -11,7 +11,7 @@ PEWDS FOCUS is a high-performance, real-time smart auto-focus and subject tracki
 
 ---
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 Because PEWDS FOCUS uses modern web features like Web Workers and WebGPU, it relies on ES modules. It cannot be run simply by double-clicking the `index.html` file (due to browser CORS policies). You must run it through a local development server.
 
@@ -39,7 +39,7 @@ python -m http.server 8000
 
 ---
 
-## 🧠 Technical Deep-Dive
+## Technical Deep-Dive
 
 PEWDS FOCUS is composed of three primary layers to guarantee accuracy and performance.
 
