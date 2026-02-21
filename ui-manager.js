@@ -4,6 +4,7 @@ export class UIManager {
         this.btnWebcam = uiElements.btnWebcam;
         this.videoUpload = uiElements.videoUpload;
         this.canvasEl = uiElements.canvasEl;
+        this.btnPlayAgain = uiElements.btnPlayAgain;
     }
 
     updateStatus(text, className) {
@@ -33,5 +34,23 @@ export class UIManager {
 
             callback(clickX, clickY);
         });
+    }
+
+    bindPlayAgainEvent(callback) {
+        if (this.btnPlayAgain) {
+            this.btnPlayAgain.addEventListener('click', callback);
+        }
+    }
+
+    showPlayAgain() {
+        if (this.btnPlayAgain) {
+            this.btnPlayAgain.style.display = 'flex';
+        }
+    }
+
+    hidePlayAgain() {
+        if (this.btnPlayAgain) {
+            this.btnPlayAgain.style.display = 'none';
+        }
     }
 }

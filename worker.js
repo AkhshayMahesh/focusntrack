@@ -1,10 +1,3 @@
-// Because MediaPipe Tasks Vision relies on 'importScripts' internally to load its WASM files,
-// and ES module workers strictly forbid 'importScripts()', we must run as a classic worker.
-// To use our modular ES6 files, we dynamically import them.
-
-// --- POLYFILL FOR MEDIAPIPE IN WORKER ---
-// MediaPipe's vision_bundle.mjs expects `document.createElement('canvas')` to exist
-// even when running in CPU delegate mode to do internal capability checks.
 if (typeof document === 'undefined') {
     self.document = {
         createElement: (type) => {
@@ -84,6 +77,7 @@ self.onmessage = async (e) => {
         if (closest) {
             isTracking = true;
             currentTarget = closest;
+            currentTarget.histogram = utils.calculateHistogram(imageData, currentTarget);
             currentVelocity = { x: 0, y: 0 };
             lostFrames = 0;
             postMessage({ type: 'TRACKING_UPDATE', payload: currentTarget });
@@ -97,6 +91,7 @@ self.onmessage = async (e) => {
                 label: 'custom-poi',
                 score: 1.0
             };
+            currentTarget.histogram = utils.calculateHistogram(imageData, currentTarget);
             currentVelocity = { x: 0, y: 0 };
             postMessage({ type: 'TRACKING_UPDATE', payload: currentTarget });
         }
@@ -111,7 +106,7 @@ self.onmessage = async (e) => {
             const predictions = tracker.detect(imageData);
 
             let bestMatch = null;
-            let minDist = Infinity;
+            let minCost = Infinity;
 
             const predictedTarget = utils.predictPosition(currentTarget, currentVelocity);
             const targetCenter = {
@@ -127,6 +122,9 @@ self.onmessage = async (e) => {
                 const centerX = p.x + p.width / 2;
                 const centerY = p.y + p.height / 2;
                 const dSq = utils.distSq(targetCenter, { x: centerX, y: centerY });
+                const distance = Math.sqrt(dSq);
+                const normalizedDistance = distance / width;
+
                 const intersectIoU = utils.iou(predictedTarget, p);
 
                 // Add a size difference penalty to prevent jumping to objects that are much larger/smaller
@@ -135,17 +133,34 @@ self.onmessage = async (e) => {
                     (currentTarget.width * currentTarget.height) / (p.width * p.height)
                 );
                 // If it's a completely different size (>2.5x diff), penalize heavily
-                const sizePenalty = (sizeRatio > 2.5) ? 100000 : 0;
+                const sizePenalty = (sizeRatio > 2.5) ? 10.0 : ((sizeRatio > 1.5) ? 2.0 : 0.0);
 
-                const occlusionScore = dSq - (intersectIoU * 50000) + sizePenalty;
+                // Color Density Penalty
+                const pHist = utils.calculateHistogram(imageData, p);
+                const histSimilarity = utils.compareHistograms(currentTarget.histogram, pHist);
+
+                // For fast motion, color similarity is the strongest feature
+                // normalizedDistance: ~0.0 to 1.0 (weighted x2)
+                // (1.0 - intersectIoU): 0.0 to 1.0 (weighted x1)
+                // (1.0 - histSimilarity): 0.0 to 1.0 (weighted x4)
+                const cost = (normalizedDistance * 2.0)
+                    + ((1.0 - intersectIoU) * 1.0)
+                    + ((1.0 - histSimilarity) * 4.0)
+                    + sizePenalty;
 
                 // Make the max distance tighter for objects with 0 IoU.
-                // With velocity prediction, the targetCenter is already moved to where we expect it to be.
-                const maxAllowedDistanceSq = (intersectIoU > 0) ? (width * 0.4) ** 2 : (width * 0.15) ** 2;
+                // However, if the color density match is extremely high, we allow massive jumps (for fast sports motion).
+                let maxAllowedDistance = width * 0.15;
+                if (histSimilarity > 0.85) {
+                    maxAllowedDistance = width * 0.8;
+                } else if (intersectIoU > 0) {
+                    maxAllowedDistance = width * 0.4;
+                }
 
-                if (occlusionScore < minDist && dSq < maxAllowedDistanceSq) {
-                    minDist = occlusionScore;
+                if (cost < minCost && distance < maxAllowedDistance) {
+                    minCost = cost;
                     bestMatch = p;
+                    bestMatch.histogram = pHist;
                 }
             }
 
@@ -156,6 +171,8 @@ self.onmessage = async (e) => {
                 };
 
                 currentTarget = utils.applyEMA(currentTarget, bestMatch, 0.75);
+                currentTarget.histogram = utils.blendHistograms(currentTarget.histogram, bestMatch.histogram, 0.1);
+
                 lostFrames = 0;
                 postMessage({ type: 'TRACKING_UPDATE', payload: currentTarget });
             } else {
@@ -164,9 +181,9 @@ self.onmessage = async (e) => {
                 if (lostFrames < 15) {
                     // Assume it continued moving at the same velocity
                     currentTarget = predictedTarget;
-                    // Apply a friction to velocity so it doesn't drift forever
-                    currentVelocity.x *= 0.8;
-                    currentVelocity.y *= 0.8;
+                    // Apply a softer friction (0.95) to velocity so fast-moving objects don't abruptly stop inside a lost frame
+                    currentVelocity.x *= 0.95;
+                    currentVelocity.y *= 0.95;
                     postMessage({ type: 'TRACKING_UPDATE', payload: currentTarget });
                 } else {
                     // Truly lost, stop attempting to predict velocity

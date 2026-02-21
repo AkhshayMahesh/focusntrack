@@ -16,23 +16,14 @@
 
 <body>
     <div id="app-container">
-        <!-- Hidden video element -->
-        <video id="source-video" playsinline webkit-playsinline muted loop crossorigin="anonymous"></video>
-
-        <!-- Main canvas for WebGPU/WebGL rendering -->
+        <video id="source-video" playsinline webkit-playsinline muted crossorigin="anonymous"></video>
         <canvas id="render-canvas"></canvas>
-
-        <!-- UI Decorators background -->
         <div class="bg-layer">
             <div class="bg-grid"></div>
-            <!-- Moved circles via CSS but they stay in this layer -->
             <div class="bg-circle inner"></div>
             <div class="bg-circle"></div>
         </div>
-
-        <!-- UI Overlay -->
         <div id="ui-layer">
-
             <div class="top-left-controls">
                 <header class="app-header">
                     <div class="header-content">
@@ -40,8 +31,6 @@
                         <div id="status-badge" class="badge">INITIALIZING...</div>
                     </div>
                 </header>
-
-                <!-- Main Menu Panel -->
                 <div class="menu-panel">
                     <div class="panel-header">
                         <div class="red-dot"></div>
@@ -50,7 +39,6 @@
                     </div>
 
                     <div class="menu-items">
-                        <!-- Option 1: Start Webcam -->
                         <div id="btn-webcam" class="menu-item-row action">
                             <div class="item-num">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -69,8 +57,6 @@
                                 </svg>
                             </div>
                         </div>
-
-                        <!-- Option 2: Upload Video -->
                         <label for="video-upload" class="menu-item-row action">
                             <div class="item-num">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -91,6 +77,23 @@
                             </div>
                         </label>
                         <input type="file" id="video-upload" accept="video/mp4,video/webm" hidden>
+
+                        <div id="btn-play-again" class="menu-item-row action" style="display: none;">
+                            <div class="item-num">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                            </div>
+                            <div class="item-text-col">
+                                <h3>PLAY AGAIN</h3>
+                                <p>restart video</p>
+                            </div>
+                            <div class="item-arrow">
+                                <svg viewBox="0 0 24 24" fill="#ef4444">
+                                    <polygon points="8,5 20,12 8,19" />
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="panel-divider">
@@ -98,15 +101,8 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Instructions pinning to bottom-left on portrait, bottom-right on landscape -->
-            <!-- <div class="instructions-panel">
-                <p><strong>TAP ANYWHERE</strong> on the video to select a subject.</p>
-                <div class="sub-text">Background blurs automatically.</div>
-            </div> -->
         </div>
     </div>
     <script type="module" src="app.js"></script>
 </body>
-
 </html>

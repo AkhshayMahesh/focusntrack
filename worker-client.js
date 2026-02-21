@@ -1,6 +1,5 @@
 export class WorkerClient {
     constructor(workerUrl) {
-        // Load as a classic worker (removing type: module) so MediaPipe's internal importScripts() works
         this.worker = new Worker(workerUrl);
         this.busy = false;
         this.ready = false;
@@ -14,7 +13,7 @@ export class WorkerClient {
                 this.ready = true;
                 if (callbacks.onReady) callbacks.onReady();
             } else if (type === 'TRACKING_UPDATE') {
-                this.busy = false; // Worker finished processing the frame
+                this.busy = false;
                 if (callbacks.onUpdate) callbacks.onUpdate(payload);
             } else if (type === 'ERROR') {
                 this.busy = false;

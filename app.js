@@ -1,21 +1,17 @@
-// Main Application Logic
-// Orchestrates the UI, Video, WebGPU Rendering, and Web Worker communication
-
 import { WebGPURenderer } from './webgpu-renderer.js';
 import { VideoManager } from './video-manager.js';
 import { UIManager } from './ui-manager.js';
 import { WorkerClient } from './worker-client.js';
 
-// DOM Elements
 const videoEl = document.getElementById('source-video');
 const canvasEl = document.getElementById('render-canvas');
 const statusBadge = document.getElementById('status-badge');
 const btnWebcam = document.getElementById('btn-webcam');
 const videoUpload = document.getElementById('video-upload');
-const menuPanel = document.querySelector('.menu-panel'); // For hiding UI
-const bgLayer = document.querySelector('.bg-layer'); // For hiding background art
+const menuPanel = document.querySelector('.menu-panel');
+const bgLayer = document.querySelector('.bg-layer');
+const btnPlayAgain = document.getElementById('btn-play-again');
 
-// App State
 const state = {
     trackingActive: false,
     selectedSubject: null, // {x, y, width, height}
@@ -25,10 +21,11 @@ const state = {
     renderer: null
 };
 
-// Managers
 const videoManager = new VideoManager(videoEl);
-const uiManager = new UIManager({ statusBadge, btnWebcam, videoUpload, canvasEl });
-const trackingWorker = new WorkerClient('worker.js'); // Uses module worker
+const uiManager = new UIManager({
+    statusBadge, btnWebcam, videoUpload, canvasEl, btnPlayAgain
+});
+const trackingWorker = new WorkerClient('worker.js');
 
 // Optimization: get imageData directly from a reused offscreen canvas
 function setupOffscreenCanvas(width, height) {
@@ -42,7 +39,6 @@ function setupOffscreenCanvas(width, height) {
     return state.offscreenCtx.getImageData(0, 0, width, height);
 }
 
-// 1. Initialize Web Worker
 trackingWorker.init({
     onReady: () => uiManager.updateStatus('Ready', 'ready'),
     onUpdate: (subject) => {
@@ -54,7 +50,6 @@ trackingWorker.init({
     }
 });
 
-// 2. Setup GPU Rendering
 async function initRenderer() {
     state.renderer = new WebGPURenderer();
     try {
@@ -67,9 +62,7 @@ async function initRenderer() {
     }
 }
 
-// 3. Render Loop
 function renderFrame() {
-    // Ensure video has enough data before trying to copy its texture
     if (!videoManager.isReady) {
         requestAnimationFrame(renderFrame);
         return;
@@ -78,13 +71,11 @@ function renderFrame() {
     const width = videoManager.width;
     const height = videoManager.height;
 
-    // Set canvas dimensions to match video smoothly
     if (canvasEl.width !== width) {
         canvasEl.width = width;
         canvasEl.height = height;
     }
 
-    // --- RENDER PASS ---
     if (state.renderContext.type === 'webgpu') {
         state.renderer.render(videoEl, canvasEl.width, canvasEl.height, {
             active: state.trackingActive,
@@ -93,11 +84,10 @@ function renderFrame() {
     } else if (state.renderContext.type === '2d') {
         const ctx = state.renderContext.context;
 
-        // 1. Draw blurred background
         ctx.filter = state.trackingActive ? 'blur(25px)' : 'none';
         ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
 
-        // 2. Draw sharp subject (if tracking)
+        // Draw sharp subject (if tracking)
         if (state.trackingActive && state.selectedSubject) {
             ctx.filter = 'none';
             // Fallback: draw a sharp box over the tracked region
@@ -125,10 +115,11 @@ function renderFrame() {
     requestAnimationFrame(renderFrame);
 }
 
-// 4. UI Events Binding
 uiManager.bindWebcamEvent(async () => {
     if (await videoManager.startWebcam()) {
+        state.videoSource = 'webcam';
         menuPanel.classList.add('hidden-menu');
+        uiManager.hidePlayAgain();
         if (bgLayer) bgLayer.classList.add('hidden-menu');
         requestAnimationFrame(renderFrame);
     }
@@ -136,7 +127,9 @@ uiManager.bindWebcamEvent(async () => {
 
 uiManager.bindVideoUploadEvent((file) => {
     if (videoManager.loadVideoFile(file)) {
+        state.videoSource = 'upload';
         menuPanel.classList.add('hidden-menu');
+        uiManager.hidePlayAgain();
         if (bgLayer) bgLayer.classList.add('hidden-menu');
         requestAnimationFrame(renderFrame);
     }
@@ -147,7 +140,6 @@ uiManager.bindCanvasClickEvent((clickX, clickY) => {
 
     state.trackingActive = true;
 
-    // Create an initial bounding box approximation for immediate feedback
     state.selectedSubject = {
         x: Math.max(0, clickX - 50),
         y: Math.max(0, clickY - 50),
@@ -162,5 +154,28 @@ uiManager.bindCanvasClickEvent((clickX, clickY) => {
     trackingWorker.initTracking(imageData, width, height, clickX, clickY);
 });
 
-// Bootstrap
+uiManager.bindPlayAgainEvent(() => {
+    uiManager.hidePlayAgain();
+    state.trackingActive = false;
+    state.selectedSubject = null;
+    menuPanel.classList.add('hidden-menu');
+    if (bgLayer) bgLayer.classList.add('hidden-menu');
+    videoEl.currentTime = 0;
+    videoEl.play();
+});
+
+// Handle video end
+videoEl.addEventListener('ended', () => {
+    state.trackingActive = false;
+    state.selectedSubject = null;
+
+    // Bring back main menu
+    menuPanel.classList.remove('hidden-menu');
+    if (bgLayer) bgLayer.classList.remove('hidden-menu');
+
+    if (state.videoSource === 'upload') {
+        uiManager.showPlayAgain();
+    }
+});
+
 initRenderer();

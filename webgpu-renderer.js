@@ -33,8 +33,8 @@ export class WebGPURenderer {
         // WGSL Shaders
         const shaderCode = `
             struct Uniforms {
-                targetRect: vec4<f32>, // x, y, width, height (normalized 0-1)
-                isTracking: f32, // 1.0 = true, 0.0 = false
+                targetRect: vec4<f32>, 
+                isTracking: f32, 
                 resolution: vec2<f32>,
             };
 
@@ -146,7 +146,6 @@ export class WebGPURenderer {
     render(videoElement, canvasWidth, canvasHeight, trackingData) {
         if (!this.ready) return;
 
-        // 1. Write Uniforms
         const uniformsArray = new Float32Array(8);
 
         let isTrackingFloat = 0.0;
@@ -154,9 +153,6 @@ export class WebGPURenderer {
 
         if (trackingData && trackingData.active && trackingData.subject) {
             isTrackingFloat = 1.0;
-            // Normalize bbox to 0.0 - 1.0 range based on video dimensions
-            // Adjust to maintain aspect ratio against canvas if needed, 
-            // but for this MVP we scale video to fit canvas exactly mapping.
             nx = trackingData.subject.x / videoElement.videoWidth;
             ny = trackingData.subject.y / videoElement.videoHeight;
             nw = trackingData.subject.width / videoElement.videoWidth;
@@ -168,13 +164,10 @@ export class WebGPURenderer {
         uniformsArray[2] = nw;
         uniformsArray[3] = nh;
         uniformsArray[4] = isTrackingFloat;
-        // 5 is padding
         uniformsArray[6] = canvasWidth;
         uniformsArray[7] = canvasHeight;
 
         this.device.queue.writeBuffer(this.uniformBuffer, 0, uniformsArray);
-
-        // 2. Upload Video Frame to Texture
         const videoTexture = this.device.createTexture({
             size: [videoElement.videoWidth, videoElement.videoHeight, 1],
             format: 'rgba8unorm',
@@ -187,7 +180,6 @@ export class WebGPURenderer {
             [videoElement.videoWidth, videoElement.videoHeight]
         );
 
-        // 3. Create Bind Group for this frame
         const bindGroup = this.device.createBindGroup({
             layout: this.pipeline.getBindGroupLayout(0),
             entries: [
@@ -197,7 +189,6 @@ export class WebGPURenderer {
             ]
         });
 
-        // 4. Render Pass
         const commandEncoder = this.device.createCommandEncoder();
         const textureView = this.context.getCurrentTexture().createView();
 
@@ -215,12 +206,11 @@ export class WebGPURenderer {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, bindGroup);
-        passEncoder.draw(3, 1, 0, 0); // 1 full screen triangle
+        passEncoder.draw(3, 1, 0, 0);
         passEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
 
-        // Cleanup texture (critical for memory)
         videoTexture.destroy();
     }
 }

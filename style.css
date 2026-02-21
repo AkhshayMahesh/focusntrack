@@ -45,11 +45,9 @@ html {
     height: 100%;
     object-fit: cover;
     z-index: 1;
-    /* Use a custom scaled-up default-style arrow cursor SVG */
     cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 32 32'%3E%3Cpath d='M0,0 L0,22 L6,16 L11,27 L15,25 L10,14 L18,14 Z' fill='white' stroke='black' stroke-width='1'/%3E%3C/svg%3E") 6 6, auto;
 }
 
-/* Background UI elements */
 .bg-layer {
     position: absolute;
     top: 0;
@@ -72,7 +70,6 @@ html {
     background-position: center;
 }
 
-/* Move background decorators partially off-screen for non-center layouts */
 .bg-circle {
     position: absolute;
     width: 400px;
@@ -91,7 +88,6 @@ html {
     border: 1px dashed rgba(255, 255, 255, 0.4);
 }
 
-/* UI Overlay Layer */
 #ui-layer {
     position: absolute;
     top: 0;
@@ -110,7 +106,6 @@ html {
     pointer-events: auto;
 }
 
-/* Group Header and Menu to top left */
 .top-left-controls {
     display: flex;
     flex-direction: column;
@@ -425,7 +420,6 @@ html {
         transform: translateY(-50%);
     }
 
-    /* Move instructions fully to bottom right when horizontal space permits */
     .instructions-panel {
         align-self: flex-end;
         width: auto;
@@ -436,7 +430,6 @@ html {
     }
 }
 
-/* Small portrait screens */
 @media (max-width: 400px) {
     #ui-layer {
         padding: 16px;
